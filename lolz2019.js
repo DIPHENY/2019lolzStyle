@@ -2,7 +2,7 @@
 // @name         Lolz Live 2019 UI Feed Minimal + Auto Update
 // @namespace    https://lolz.live/
 // @version      1.1.0
-// @description  Минималистичная лента Lolz.live + автообновление + UI как на скрине
+// @description  Минималистичная лента Lolz.live 
 // @match        https://lolz.live/*
 // @match        https://*.lolz.live/*
 // @grant        GM_xmlhttpRequest
@@ -156,4 +156,5 @@ const obs = new MutationObserver(reflow);
 obs.observe(document.body, { childList:true, subtree:true });
 
 reflow();
+
 
