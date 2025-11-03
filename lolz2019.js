@@ -1,160 +1,328 @@
 // ==UserScript==
-// @name         Lolz Live 2019 UI Feed Minimal + Auto Update
-// @namespace    https://lolz.live/
-// @version      1.1.0
-// @description  Минималистичная лента Lolz.live 
+// @name         LZT style 2019
+// @description  LZT back style 2019
+// @namespace    http://tampermonkey.net/
+// @version      1.1
+// @icon         https://lolz.live/styles/brand/download/avatars/three_avatar.svg
+// @author       https://lolz.live/tekumi/
 // @match        https://lolz.live/*
-// @match        https://*.lolz.live/*
-// @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
-// @run-at       document-end
+// @run-at       document-start
+// @license      LZT
+// @downloadURL https://update.greasyfork.org/scripts/554560/LZT%20style%202019.user.js
+// @updateURL https://update.greasyfork.org/scripts/554560/LZT%20style%202019.meta.js
 // ==/UserScript==
 
-// ===================== //
-//  CONFIG FOR UPDATER   //
-// ===================== //
-const SCRIPT_NAME = "Lolz 2019 UI Feed";
-const RAW_URL = "https://raw.githubusercontent.com/DIPHENY/2019lolzStyle/refs/heads/main/lolz2019.js";
-const CURRENT_VERSION = GM_info.script.version;
+(function() {
+    'use strict';
 
-// ===================== //
-//     UPDATE BANNER     //
-// ===================== //
-GM_addStyle(`
-.lolzUpdateBanner {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  background: #1e2126;
-  padding: 8px 14px;
-  border-bottom: 1px solid rgba(255,255,255,.12);
-  font-family: sans-serif;
-  color: #fff;
-  z-index: 9999999;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
-}
-.lolzUpdateBanner button {
-  background: #0ac18e;
-  border: none;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 13px;
-}
-`);
+    GM_addStyle(`
+        .text_Ads {
+            margin-bottom: 0px !important;
+            border-radius: 0px !important;
+        }
 
-function versionCompare(v1, v2) {
-  const a = v1.split('.').map(Number);
-  const b = v2.split('.').map(Number);
-  for (let i = 0; i < Math.max(a.length, b.length); i++) {
-    if ((a[i]||0) > (b[i]||0)) return 1;
-    if ((a[i]||0) < (b[i]||0)) return -1;
-  }
-  return 0;
-}
+        .text_Ads-main {
+            margin-bottom: 0px !important;
+            border-radius: 0px !important;
+            border-top-left-radius: 0px !important;
+            border-top-right-radius: 0px !important;
+        }
 
-function showBanner(newV) {
-  const bar = document.createElement("div");
-  bar.className = "lolzUpdateBanner";
-  bar.innerHTML = `
-    🚀 Новая версия скрипта доступна: <b>v${newV}</b> (у вас v${CURRENT_VERSION})
-    <button id="updateScriptBtn">Обновить</button>
-  `;
-  document.body.appendChild(bar);
+        .text_Ads-main .discussionListItem:first-child {
+            border-top-left-radius: 8px !important;
+            border-top-right-radius: 8px !important;
+        }
 
-  document.getElementById("updateScriptBtn").onclick = () => {
-    window.open(RAW_URL, "_blank");
-    bar.remove();
-  };
-}
+        .discussionListItem[data-converted="true"] .listBlock.main .title {
+            margin-left: 15px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 2px !important;
+            flex-wrap: nowrap !important;
+            min-width: 0 !important;
+        }
 
-GM_xmlhttpRequest({
-  method: "GET",
-  url: RAW_URL + "?_=" + Date.now(),
-  onload: (res) => {
-    const match = res.responseText.match(/@version\s+([\d.]+)/);
-    if (!match) return;
-    const latest = match[1];
-    if (versionCompare(latest, CURRENT_VERSION) > 0) showBanner(latest);
-  }
-});
+        .discussionListItem[data-converted="true"] .listBlock.main .title .threadPrefixes {
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
+            display: flex !important;
+            gap: 2px !important;
+        }
 
-// ===================== //
-//     FEED MINI-LAYOUT  //
-// ===================== //
+        .discussionListItem[data-converted="true"] .listBlock.main .title .spanTitle {
+            flex-shrink: 1 !important;
+            min-width: 0 !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            white-space: nowrap !important;
+        }
 
-function reflow() {
-  document.querySelectorAll(".discussionListItem:not([data-reflow='1'])").forEach(item => {
+        .discussionListItem[data-converted="true"] .listBlock.main .secondRow {
+            margin-left: 15px !important;
+        }
 
-    const avatarWrap = item.querySelector(".threadHeaderAvatar");
-    const titleBlock = item.querySelector(".threadHeaderTitle.header_mobile_hiden");
-    const titleA     = titleBlock ? titleBlock.querySelector("a") : null;
-    const prefixes   = titleBlock ? titleBlock.querySelector(".threadPrefixes") : null;
-    const authorNode = item.querySelector(".thread_creator_mobile_hidden .username")
-                     || item.querySelector(".threadHeaderUsernameBlock .username");
-    const forumNode  = item.querySelector(".threadHeaderBottom .zindex-block-main-forum-title");
-    const createdNode= item.querySelector(".threadHeaderBottom .muted:not(.threadLastPost--date)");
-    const bumpNode   = item.querySelector(".threadHeaderBottom .muted + .separator + .muted");
-    const countersWrap = item.querySelector(".threadCounters");
+        .discussionListItem[data-converted="true"] {
+            margin-bottom: 0px !important;
+            border-radius: 0px !important;
+        }
 
-    if (!titleA || !avatarWrap || !authorNode) return;
+        .discussionListItem[data-converted="true"] .discussionListItem--Wrapper {
+            margin-bottom: 0px !important;
+            border-radius: 0px !important;
+        }
 
-    [...item.children].forEach(ch => ch.style.display = "none");
+        .discussionListItem[data-converted="true"] .listBlock {
+            border-radius: 0px !important;
+        }
 
-    const avatarHTML = avatarWrap.cloneNode(true).outerHTML;
-    const rightTime  = bumpNode?.innerText.trim() || createdNode?.innerText.trim() || "";
+        .discussionListItem[data-converted="true"]:first-child {
+            border-top-left-radius: 0px !important;
+            border-top-right-radius: 0px !important;
+        }
 
-    const rightCol = `
-      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:72px;padding:6px 6px 6px 0;">
-        ${avatarHTML}
-        <div style="color:#999;font-size:12px;text-align:center;line-height:1.2;">${rightTime}</div>
-      </div>
-    `;
+        .index .aboveThread-main {
+            border-radius: 8px 8px 0px 0px !important;
+        }
 
-    const prefixHTML = prefixes?.outerHTML || "";
-    const titleHTML  = titleA.outerHTML;
-    const authorHTML = authorNode.outerHTML;
-    const forumHTML  = forumNode?.outerHTML || "";
-    const createdStr = createdNode ? createdNode.innerText.trim() : "";
+        .aboveThread-main {
+            padding: 16px;
+            margin-bottom: 0px;
+            border-radius: 8px !important;
+        }
 
-    const metaLine = `
-      <div style="display:flex;align-items:center;gap:6px;color:#aaa;font-size:13px;">
-        ${authorHTML}
-        <span style="color:#6f6f6f">•</span>
-        ${forumHTML}
-        <span style="color:#6f6f6f">•</span>
-        ${createdStr}
-      </div>
-    `;
-
-    const countersHTML = countersWrap 
-      ? `<div class="threadCounters" style="margin-top:6px; transform:scale(.94); transform-origin:left center;">${countersWrap.innerHTML}</div>`
-      : "";
-
-    const card = document.createElement("div");
-    card.style.cssText = `display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.08);`;
-
-    card.innerHTML = `
-      <div style="flex:1;min-width:0;">
-        ${prefixHTML}
-        ${titleHTML}
-        ${metaLine}
-        ${countersHTML}
-      </div>
-      ${rightCol}
-    `;
-
-    item.appendChild(card);
-    item.dataset.reflow = "1";
-  });
-}
-
-const obs = new MutationObserver(reflow);
-obs.observe(document.body, { childList:true, subtree:true });
-
-reflow();
+        .hotThreadsContainer {
+            margin-top: 12px;
+        }
+    `);
 
 
+
+    function extractTimestamp(threadItem) {
+        const headerBottoms = threadItem.querySelectorAll('.threadHeaderBottom');
+
+        for (let headerBottom of headerBottoms) {
+            const allElements = headerBottom.querySelectorAll('*');
+
+            for (let el of allElements) {
+                if (el.children.length === 0) {
+                    const text = el.textContent.trim();
+                    if (text && (text.includes('назад') || text.includes('сегодня') || text.includes('вчера') ||
+                        text.match(/в \d{1,2}:\d{2}/) || text.includes('Только что') || text.match(/^\d+\s+сек/) ||
+                        text.match(/^\d+\s+мин/) || text.match(/^\d+\s+час/) || text.match(/^\d+\s+\w+\s+\d{4}/) ||
+                        text.match(/^\d+\s+янв|^\d+\s+фев|^\d+\s+мар|^\d+\s+апр|^\d+\s+май|^\d+\s+июн|^\d+\s+июл|^\d+\s+авг|^\d+\s+сен|^\d+\s+окт|^\d+\s+ноя|^\d+\s+дек/i))) {
+                        return text;
+                    }
+                }
+            }
+        }
+
+        return '';
+    }
+
+    function getReplyCount(threadItem) {
+        const threadCounters = threadItem.querySelector('.threadCounters');
+        if (threadCounters) {
+            const replyCounter = threadCounters.querySelector('.counter:not(.LikeLink)');
+            if (replyCounter) {
+                const valueEl = replyCounter.querySelector('.value');
+                if (valueEl) {
+                    return valueEl.textContent.trim();
+                }
+            }
+        }
+        return '0';
+    }
+
+    function getLikeCount(threadItem) {
+        const threadCounters = threadItem.querySelector('.threadCounters');
+        if (threadCounters) {
+            const likeLink = threadCounters.querySelector('.LikeLink');
+            if (likeLink) {
+                const valueEl = likeLink.querySelector('.LikeLabel.value');
+                if (valueEl) {
+                    return valueEl.textContent.trim();
+                }
+            }
+        }
+        return '0';
+    }
+
+    function isLikesSection(threadItem) {
+        const threadCounters = threadItem.querySelector('.threadCounters');
+        if (threadCounters) {
+            const likeLink = threadCounters.querySelector('.LikeLink');
+            if (likeLink) {
+                const iconCounter = likeLink.querySelector('.icon-counter-main-likes');
+                return iconCounter !== null;
+            }
+        }
+        return false;
+    }
+
+    function convertThreadItem(threadItem) {
+        if (threadItem.hasAttribute('data-converted')) return;
+
+        const threadId = threadItem.id;
+        const dataAuthor = threadItem.getAttribute('data-author');
+        const classes = threadItem.className;
+
+        const titleLink = threadItem.querySelector('.threadHeaderTitle a');
+        if (!titleLink) return;
+        const threadTitle = titleLink.textContent.trim();
+        let threadUrl = titleLink.getAttribute('href');
+
+        if (!threadUrl || threadUrl === '#') {
+            const altLink = threadItem.querySelector('a[href*="posts/"]');
+            if (altLink) {
+                threadUrl = altLink.getAttribute('href');
+            }
+        }
+
+        const prefixesElement = titleLink.querySelector('.threadPrefixes');
+        const prefixesHTML = prefixesElement ? prefixesElement.outerHTML : '';
+
+        const creatorLink = threadItem.querySelector('.threadHeaderUsernameBlock .username, .thread_creator_mobile_hidden .username');
+        if (!creatorLink) return;
+        const creatorUsernameHTML = creatorLink.innerHTML;
+        const creatorUrl = creatorLink.getAttribute('href');
+
+        const creatorAvatar = threadItem.querySelector('.threadHeaderAvatar a.avatar, .zindex-block-main2.threadHeaderAvatar a.avatar');
+
+        const timestamp = extractTimestamp(threadItem);
+
+        const lastPostSection = threadItem.querySelector('.threadLastPost');
+        let lastPostAvatar, lastPostUser, lastPostDateText, lastPostUrl;
+
+        if (lastPostSection) {
+            lastPostAvatar = lastPostSection.querySelector('.threadHeaderAvatar a');
+            lastPostUser = lastPostSection.querySelector('.username');
+
+            const lastPostDate = lastPostSection.querySelector('.threadLastPost--date');
+            if (lastPostDate) {
+                lastPostDateText = lastPostDate.textContent.trim();
+                lastPostUrl = lastPostDate.getAttribute('href');
+            } else {
+                const muteElements = lastPostSection.querySelectorAll('.muted');
+                for (let el of muteElements) {
+                    if (el.tagName === 'SPAN') {
+                        const text = el.textContent.trim();
+                        if (text && (text.includes('назад') || text.includes('сегодня') || text.includes('вчера') ||
+                            text.match(/в \d{1,2}:\d{2}/) || text.includes('Только что'))) {
+                            lastPostDateText = text;
+                            lastPostUrl = el.href || threadUrl;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!lastPostAvatar) {
+            lastPostAvatar = creatorAvatar;
+            lastPostUser = creatorLink;
+        }
+
+        const replyCount = getReplyCount(threadItem);
+        const likeCount = getLikeCount(threadItem);
+        const useLikesClass = isLikesSection(threadItem);
+        const likeClassName = useLikesClass ? 'discussionListItem--likeCount' : 'discussionListItem--like2Count';
+
+        const displayTime = lastPostDateText || timestamp;
+
+        const lastPostHTML = lastPostAvatar ? `
+            <div class="listBlock lastPost">
+                ${lastPostAvatar.outerHTML}
+                <div class="bold lastPostInfo">
+                    ${lastPostUser.outerHTML}
+                </div>
+                <a href="${lastPostUrl || threadUrl}" title="Перейти к последнему сообщению" class="dateTime lastPostInfo muted">
+                    ${displayTime}
+                </a>
+            </div>
+        ` : '';
+
+        const newHTML = `
+            <div class="discussionListItem--Wrapper">
+                ${lastPostHTML}
+
+                <a title="" href="${threadUrl}" class="listBlock main PreviewTooltip" data-previewurl="${threadUrl}/preview" aria-expanded="false">
+                    <h3 class="title">
+                        ${prefixesHTML}
+                        <span class="spanTitle ${classes.includes('unread') ? 'unread' : ''}">${threadTitle}</span>
+                    </h3>
+                    <span class="secondRow">
+                        <label class="username threadCreator OverlayTrigger" data-href="${creatorUrl}?card=1">${creatorUsernameHTML}</label>
+                        <span class="info-separator"></span>
+                        <span class="startDate muted" title="">${timestamp}</span>
+                        <span class="discussionListItem--replyCount icon muted">${replyCount}</span>
+                        <span class="${likeClassName} icon muted pclikeCount">${likeCount}</span>
+
+                        <span class="mobile--LastReply">
+                            <span class="discussionListItem--replyCount mobile icon muted">${replyCount}</span>
+                            <span style="margin: 0px 8px 0px 0px" class="${likeClassName} icon muted mblikeCount">${likeCount}</span>
+                            <span class="svgIcon mobile--LastReplyIcon"></span>
+                            <span class="username">
+                                ${lastPostUser ? lastPostUser.innerHTML : creatorUsernameHTML}
+                            </span>
+                            <span class="muted">${displayTime}</span>
+                        </span>
+                    </span>
+                </a>
+            </div>
+        `;
+
+        threadItem.innerHTML = newHTML;
+        threadItem.setAttribute('data-converted', 'true');
+
+        const replyForm = document.getElementById(`replySubmit-${threadId.replace('thread-', '')}`);
+        if (replyForm) replyForm.remove();
+    }
+
+    function processAllThreads() {
+        const threads = document.querySelectorAll('.discussionListItem[id^="thread-"]');
+        threads.forEach(thread => {
+            if (thread.querySelector('.threadMessage, .threadMain')) {
+                convertThreadItem(thread);
+            }
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            processAllThreads();
+            setTimeout(() => window.scrollBy(0, 1), 100);
+        });
+    } else {
+        processAllThreads();
+        setTimeout(() => window.scrollBy(0, 1), 100);
+    }
+
+    const observer = new MutationObserver(mutations => {
+        let shouldProcess = false;
+
+        mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+                if (node.nodeType === 1) {
+                    if (node.matches?.('.discussionListItem[id^="thread-"]')) {
+                        if (node.querySelector('.threadMessage, .threadMain')) {
+                            shouldProcess = true;
+                        }
+                    }
+                    if (node.querySelector?.('.discussionListItem[id^="thread-"]')) {
+                        shouldProcess = true;
+                    }
+                }
+            });
+        });
+
+        if (shouldProcess) {
+            processAllThreads();
+        }
+    });
+
+    observer.observe(document.documentElement, {
+        childList: true,
+        subtree: true
+    });
+})();
