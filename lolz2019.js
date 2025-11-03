@@ -169,7 +169,16 @@
 
         const titleLink = threadItem.querySelector('.threadHeaderTitle a');
         if (!titleLink) return;
-        const threadTitle = titleLink.textContent.trim();
+        
+        const prefixesElement = titleLink.querySelector('.threadPrefixes');
+        const prefixesHTML = prefixesElement ? prefixesElement.outerHTML : '';
+        
+        let threadTitle = titleLink.textContent.trim();
+        if (prefixesElement) {
+            const prefixText = prefixesElement.textContent.trim();
+            threadTitle = threadTitle.replace(prefixText, '').trim();
+        }
+        
         let threadUrl = titleLink.getAttribute('href');
 
         if (!threadUrl || threadUrl === '#') {
@@ -179,9 +188,6 @@
             }
         }
 
-        const prefixesElement = titleLink.querySelector('.threadPrefixes');
-        const prefixesHTML = prefixesElement ? prefixesElement.outerHTML : '';
-
         const creatorLink = threadItem.querySelector('.threadHeaderUsernameBlock .username, .thread_creator_mobile_hidden .username');
         if (!creatorLink) return;
         const creatorUsernameHTML = creatorLink.innerHTML;
@@ -190,13 +196,38 @@
         const creatorAvatar = threadItem.querySelector('.threadHeaderAvatar a.avatar, .zindex-block-main2.threadHeaderAvatar a.avatar');
 
         const timestamp = extractTimestamp(threadItem);
+        
+        let bumpTime = '';
+        const headerBottom = threadItem.querySelector('.threadHeaderBottom');
+        if (headerBottom) {
+            const mutedElements = headerBottom.querySelectorAll('.muted');
+            for (let el of mutedElements) {
+                const text = el.textContent.trim();
+                if (text.includes('поднята') || text.includes('обновлена')) {
+                    bumpTime = text.replace('поднята', '').replace('обновлена', '').trim();
+                    break;
+                }
+            }
+        }
 
-        const lastPostSection = threadItem.querySelector('.threadLastPost');
+        const lastPostBlock = threadItem.querySelector('.listBlock.lastPost');
         let lastPostAvatar, lastPostUser, lastPostDateText, lastPostUrl;
 
-        if (lastPostSection) {
-            lastPostAvatar = lastPostSection.querySelector('.threadHeaderAvatar a');
-            lastPostUser = lastPostSection.querySelector('.username');
+        if (lastPostBlock) {
+            lastPostAvatar = lastPostBlock.querySelector('a.avatar');
+            lastPostUser = lastPostBlock.querySelector('.lastPostInfo.bold .username');
+            
+            const dateTimeLink = lastPostBlock.querySelector('a.dateTime.lastPostInfo.muted');
+            if (dateTimeLink) {
+                lastPostDateText = dateTimeLink.textContent.trim();
+                lastPostUrl = dateTimeLink.getAttribute('href');
+            }
+        }
+
+        const lastPostSection = threadItem.querySelector('.threadLastPost');
+        if (lastPostSection && !lastPostDateText) {
+            lastPostAvatar = lastPostAvatar || lastPostSection.querySelector('.threadHeaderAvatar a');
+            lastPostUser = lastPostUser || lastPostSection.querySelector('.username');
 
             const lastPostDate = lastPostSection.querySelector('.threadLastPost--date');
             if (lastPostDate) {
@@ -228,7 +259,10 @@
         const useLikesClass = isLikesSection(threadItem);
         const likeClassName = useLikesClass ? 'discussionListItem--likeCount' : 'discussionListItem--like2Count';
 
-        const displayTime = lastPostDateText || timestamp;
+        const displayTime = bumpTime || lastPostDateText || timestamp;
+        
+        const controlsBlock = threadItem.querySelector('.controls');
+        const controlsHTML = controlsBlock ? controlsBlock.outerHTML : '';
 
         const lastPostHTML = lastPostAvatar ? `
             <div class="listBlock lastPost">
@@ -246,12 +280,16 @@
             <div class="discussionListItem--Wrapper">
                 ${lastPostHTML}
 
+                ${controlsHTML}
+
                 <a title="" href="${threadUrl}" class="listBlock main PreviewTooltip" data-previewurl="${threadUrl}/preview" aria-expanded="false">
                     <h3 class="title">
-                        ${prefixesHTML}
                         <span class="spanTitle ${classes.includes('unread') ? 'unread' : ''}">${threadTitle}</span>
                     </h3>
                     <span class="secondRow">
+                        <span class="threadTitle--prefixGroup">
+                            ${prefixesHTML}
+                        </span>
                         <label class="username threadCreator OverlayTrigger" data-href="${creatorUrl}?card=1">${creatorUsernameHTML}</label>
                         <span class="info-separator"></span>
                         <span class="startDate muted" title="">${timestamp}</span>
