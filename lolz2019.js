@@ -16,6 +16,27 @@
 (function() {
     'use strict';
 
+    function disableControlsStyles() {
+        for (let sheet of document.styleSheets) {
+            try {
+                const rules = sheet.cssRules || sheet.rules;
+                for (let i = rules.length - 1; i >= 0; i--) {
+                    const rule = rules[i];
+                    if (rule.selectorText &&
+                        (rule.selectorText.includes('.discussionListMainPage .discussionListItem .controls') ||
+                         rule.selectorText.includes('.discussionListItem--Wrapper:hover .controls'))) {
+                        sheet.deleteRule(i);
+                    }
+                }
+            } catch(e) {}
+        }
+    }
+
+    window.addEventListener('load', () => {
+        disableControlsStyles();
+        setTimeout(disableControlsStyles, 500);
+    });
+
     GM_addStyle(`
         .text_Ads {
             margin-bottom: 0px !important;
@@ -169,16 +190,16 @@
 
         const titleLink = threadItem.querySelector('.threadHeaderTitle a');
         if (!titleLink) return;
-        
+
         const prefixesElement = titleLink.querySelector('.threadPrefixes');
         const prefixesHTML = prefixesElement ? prefixesElement.outerHTML : '';
-        
+
         let threadTitle = titleLink.textContent.trim();
         if (prefixesElement) {
             const prefixText = prefixesElement.textContent.trim();
             threadTitle = threadTitle.replace(prefixText, '').trim();
         }
-        
+
         let threadUrl = titleLink.getAttribute('href');
 
         if (!threadUrl || threadUrl === '#') {
@@ -196,7 +217,7 @@
         const creatorAvatar = threadItem.querySelector('.threadHeaderAvatar a.avatar, .zindex-block-main2.threadHeaderAvatar a.avatar');
 
         const timestamp = extractTimestamp(threadItem);
-        
+
         let bumpTime = '';
         const headerBottom = threadItem.querySelector('.threadHeaderBottom');
         if (headerBottom) {
@@ -216,7 +237,7 @@
         if (lastPostBlock) {
             lastPostAvatar = lastPostBlock.querySelector('a.avatar');
             lastPostUser = lastPostBlock.querySelector('.lastPostInfo.bold .username');
-            
+
             const dateTimeLink = lastPostBlock.querySelector('a.dateTime.lastPostInfo.muted');
             if (dateTimeLink) {
                 lastPostDateText = dateTimeLink.textContent.trim();
@@ -260,7 +281,7 @@
         const likeClassName = useLikesClass ? 'discussionListItem--likeCount' : 'discussionListItem--like2Count';
 
         const displayTime = bumpTime || lastPostDateText || timestamp;
-        
+
         const controlsBlock = threadItem.querySelector('.controls');
         const controlsHTML = controlsBlock ? controlsBlock.outerHTML : '';
 
