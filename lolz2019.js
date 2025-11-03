@@ -22,7 +22,7 @@
                 const rules = sheet.cssRules || sheet.rules;
                 for (let i = rules.length - 1; i >= 0; i--) {
                     const rule = rules[i];
-                    if (rule.selectorText &&
+                    if (rule.selectorText && 
                         (rule.selectorText.includes('.discussionListMainPage .discussionListItem .controls') ||
                          rule.selectorText.includes('.discussionListItem--Wrapper:hover .controls'))) {
                         sheet.deleteRule(i);
@@ -32,9 +32,37 @@
         }
     }
 
+    function applyBackground() {
+        const bgUrl = localStorage.getItem('customBackground');
+        let bgElement = document.getElementById('customBgLayer');
+        
+        if (bgUrl) {
+            if (!bgElement) {
+                bgElement = document.createElement('div');
+                bgElement.id = 'customBgLayer';
+                document.body.prepend(bgElement);
+            }
+            bgElement.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: -2;
+                width: 100%;
+                height: 100vh;
+                background: linear-gradient(rgb(54 54 54 / .85), rgb(54 54 54 / .85)), url(${bgUrl});
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+            `;
+        } else if (bgElement) {
+            bgElement.remove();
+        }
+    }
+
     window.addEventListener('load', () => {
         disableControlsStyles();
         setTimeout(disableControlsStyles, 500);
+        applyBackground();
     });
 
     GM_addStyle(`
@@ -115,6 +143,10 @@
         .hotThreadsContainer {
             margin-top: 12px;
         }
+
+        .hotThreadsContainer.hidden {
+            display: none !important;
+        }
     `);
 
 
@@ -189,7 +221,10 @@
         const classes = threadItem.className;
 
         const titleLink = threadItem.querySelector('.threadHeaderTitle a');
-        if (!titleLink) return;
+        if (!titleLink) {
+            threadItem.remove();
+            return;
+        }
 
         const prefixesElement = titleLink.querySelector('.threadPrefixes');
         const prefixesHTML = prefixesElement ? prefixesElement.outerHTML : '';
@@ -210,7 +245,10 @@
         }
 
         const creatorLink = threadItem.querySelector('.threadHeaderUsernameBlock .username, .thread_creator_mobile_hidden .username');
-        if (!creatorLink) return;
+        if (!creatorLink) {
+            threadItem.remove();
+            return;
+        }
         const creatorUsernameHTML = creatorLink.innerHTML;
         const creatorUrl = creatorLink.getAttribute('href');
 
@@ -339,7 +377,7 @@
     }
 
     function processAllThreads() {
-        const threads = document.querySelectorAll('.discussionListItem[id^="thread-"]');
+        const threads = document.querySelectorAll('.discussionListItem[id^="thread-"]:not([data-converted])');
         threads.forEach(thread => {
             if (thread.querySelector('.threadMessage, .threadMain')) {
                 convertThreadItem(thread);
@@ -347,37 +385,167 @@
         });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            processAllThreads();
-            setTimeout(() => window.scrollBy(0, 1), 100);
-        });
-    } else {
-        processAllThreads();
-        setTimeout(() => window.scrollBy(0, 1), 100);
-    }
+    function initHotThreadsToggle() {
+        const hotContainer = document.querySelector('.hotThreadsContainer');
+        if (!hotContainer) return;
 
-    const observer = new MutationObserver(mutations => {
-        let shouldProcess = false;
+        const isHidden = localStorage.getItem('hotThreadsHidden') === 'true';
+        if (isHidden) {
+            hotContainer.classList.add('hidden');
+        }
 
-        mutations.forEach(mutation => {
-            mutation.addedNodes.forEach(node => {
-                if (node.nodeType === 1) {
-                    if (node.matches?.('.discussionListItem[id^="thread-"]')) {
-                        if (node.querySelector('.threadMessage, .threadMain')) {
-                            shouldProcess = true;
+        function addHotThreadsOption() {
+            const feedForm = document.querySelector('#ExcludeForumsForm');
+            if (!feedForm) return;
+            
+            if (document.getElementById('hideHotThreadsCheckbox')) return;
+
+            const titles = feedForm.querySelectorAll('.title');
+            let keywordsSection = null;
+            
+            titles.forEach(title => {
+                if (title.textContent.trim().includes('ключевым словам')) {
+                    keywordsSection = title;
+                }
+            });
+
+            if (!keywordsSection) return;
+
+            const currentIsHidden = localStorage.getItem('hotThreadsHidden') === 'true';
+            const currentBg = localStorage.getItem('customBackground') || '';
+            
+            const hotThreadsSection = document.createElement('div');
+            hotThreadsSection.style.marginTop = '16px';
+            hotThreadsSection.innerHTML = `
+                <div class="title">Скрыть горячие темы</div>
+                <div class="explainTitle">Горячие темы не будут отображаться на главной странице.</div>
+                <div class="" style="margin-top: 8px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="hideHotThreadsCheckbox" ${currentIsHidden ? 'checked' : ''}>
+                        <span>Скрыть раздел "Горячие темы"</span>
+                    </label>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <div class="title">Задний фон страницы</div>
+                    <div class="explainTitle">Установите свой фон для сайта.</div>
+                    <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 10px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 4px;">Ссылка на изображение:</label>
+                            <input type="text" id="bgUrlInput" placeholder="https://example.com/image.jpg" 
+                                   value="${currentBg}" style="width: 100%; padding: 6px; background: #1a1a1a; color: #d6d6d6; border: 1px solid #404040; border-radius: 4px;">
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="applyBgBtn" style="padding: 6px 16px; background: #4a9eff; color: white; border: none; border-radius: 4px; cursor: pointer;">Применить</button>
+                            <button id="removeBgBtn" style="padding: 6px 16px; background: #ff4a4a; color: white; border: none; border-radius: 4px; cursor: pointer;">Удалить фон</button>
+                            <label for="bgFileInput" style="padding: 6px 16px; background: #5a5a5a; color: white; border-radius: 4px; cursor: pointer; display: inline-block;">
+                                Загрузить с ПК
+                                <input type="file" id="bgFileInput" accept="image/*" style="display: none;">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            keywordsSection.parentElement.insertBefore(hotThreadsSection, keywordsSection);
+
+            const checkbox = document.getElementById('hideHotThreadsCheckbox');
+            checkbox.addEventListener('change', () => {
+                const shouldHide = checkbox.checked;
+                localStorage.setItem('hotThreadsHidden', shouldHide);
+                if (shouldHide) {
+                    hotContainer.classList.add('hidden');
+                } else {
+                    hotContainer.classList.remove('hidden');
+                }
+            });
+
+            const bgUrlInput = document.getElementById('bgUrlInput');
+            const applyBgBtn = document.getElementById('applyBgBtn');
+            const removeBgBtn = document.getElementById('removeBgBtn');
+            const bgFileInput = document.getElementById('bgFileInput');
+
+            applyBgBtn.addEventListener('click', () => {
+                const url = bgUrlInput.value.trim();
+                if (url) {
+                    localStorage.setItem('customBackground', url);
+                    applyBackground();
+                    alert('Фон применен!');
+                }
+            });
+
+            removeBgBtn.addEventListener('click', () => {
+                localStorage.removeItem('customBackground');
+                const bgElement = document.getElementById('customBgLayer');
+                if (bgElement) bgElement.remove();
+                bgUrlInput.value = '';
+                alert('Фон удален!');
+            });
+
+            bgFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const dataUrl = event.target.result;
+                        localStorage.setItem('customBackground', dataUrl);
+                        applyBackground();
+                        bgUrlInput.value = 'Загружено с ПК';
+                        alert('Фон загружен и применен!');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(mutation => {
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach(node => {
+                        if (node.nodeType === 1 && node.querySelector && node.querySelector('#ExcludeForumsForm')) {
+                            setTimeout(addHotThreadsOption, 100);
                         }
-                    }
-                    if (node.querySelector?.('.discussionListItem[id^="thread-"]')) {
-                        shouldProcess = true;
-                    }
+                    });
                 }
             });
         });
 
-        if (shouldProcess) {
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
             processAllThreads();
-        }
+            initHotThreadsToggle();
+            setTimeout(() => window.scrollBy(0, 1), 100);
+        });
+    } else {
+        processAllThreads();
+        initHotThreadsToggle();
+        setTimeout(() => window.scrollBy(0, 1), 100);
+    }
+
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(mutation => {
+            mutation.addedNodes.forEach(node => {
+                if (node.nodeType === 1) {
+                    if (node.matches?.('.discussionListItem[id^="thread-"]')) {
+                        if (!node.hasAttribute('data-converted') && node.querySelector('.threadMessage, .threadMain')) {
+                            convertThreadItem(node);
+                        }
+                    }
+                    if (node.querySelector?.('.discussionListItem[id^="thread-"]')) {
+                        processAllThreads();
+                    }
+                    if (node.matches?.('.hotThreadsContainer') || node.querySelector?.('.hotThreadsContainer')) {
+                        initHotThreadsToggle();
+                    }
+                }
+            });
+        });
     });
 
     observer.observe(document.documentElement, {
