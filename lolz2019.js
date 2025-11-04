@@ -2,7 +2,7 @@
 // @name         LZT style 2019
 // @description  LZT back style 2019
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      1.2
 // @icon         https://lolz.live/styles/brand/download/avatars/three_avatar.svg
 // @author       https://lolz.live/tekumi/
 // @match        https://lolz.live/*
@@ -22,7 +22,7 @@
                 const rules = sheet.cssRules || sheet.rules;
                 for (let i = rules.length - 1; i >= 0; i--) {
                     const rule = rules[i];
-                    if (rule.selectorText && 
+                    if (rule.selectorText &&
                         (rule.selectorText.includes('.discussionListMainPage .discussionListItem .controls') ||
                          rule.selectorText.includes('.discussionListItem--Wrapper:hover .controls'))) {
                         sheet.deleteRule(i);
@@ -35,7 +35,7 @@
     function applyBackground() {
         const bgUrl = localStorage.getItem('customBackground');
         let bgElement = document.getElementById('customBgLayer');
-        
+
         if (bgUrl) {
             if (!bgElement) {
                 bgElement = document.createElement('div');
@@ -59,10 +59,37 @@
         }
     }
 
+    function updateRoundingClasses() {
+        const hotContainer = document.querySelector('.hotThreadsContainer');
+        const textAdsMain = document.querySelector('.text_Ads-main');
+        const latestThreadsFirst = document.querySelector('.latestThreads._insertLoadedContent .discussionListItem:first-child');
+
+        if (!hotContainer) return;
+
+        const isHidden = hotContainer.classList.contains('hidden');
+
+        if (textAdsMain) {
+            if (isHidden) {
+                textAdsMain.classList.add('hot-hidden');
+            } else {
+                textAdsMain.classList.remove('hot-hidden');
+            }
+        }
+
+        if (latestThreadsFirst) {
+            if (isHidden) {
+                latestThreadsFirst.classList.add('hot-hidden');
+            } else {
+                latestThreadsFirst.classList.remove('hot-hidden');
+            }
+        }
+    }
+
     window.addEventListener('load', () => {
         disableControlsStyles();
         setTimeout(disableControlsStyles, 500);
         applyBackground();
+        updateRoundingClasses();
     });
 
     GM_addStyle(`
@@ -76,9 +103,36 @@
             border-radius: 0px !important;
             border-top-left-radius: 0px !important;
             border-top-right-radius: 0px !important;
+            border-bottom-left-radius: 8px !important;
+            border-bottom-right-radius: 8px !important;
+        }
+
+        .text_Ads-main.hot-hidden {
+            border-bottom-left-radius: 0px !important;
+            border-bottom-right-radius: 0px !important;
         }
 
         .text_Ads-main .discussionListItem:first-child {
+            border-top-left-radius: 8px !important;
+            border-top-right-radius: 8px !important;
+        }
+
+        .text_Ads-main .discussionListItem:last-child {
+            border-bottom-left-radius: 8px !important;
+            border-bottom-right-radius: 8px !important;
+        }
+
+        .text_Ads-main.hot-hidden .discussionListItem:last-child {
+            border-bottom-left-radius: 0px !important;
+            border-bottom-right-radius: 0px !important;
+        }
+
+        .latestThreads._insertLoadedContent .discussionListItem:first-child {
+            border-top-left-radius: 0px !important;
+            border-top-right-radius: 0px !important;
+        }
+
+        .latestThreads._insertLoadedContent .discussionListItem:first-child:not(.hot-hidden) {
             border-top-left-radius: 8px !important;
             border-top-right-radius: 8px !important;
         }
@@ -105,6 +159,12 @@
             overflow: hidden !important;
             text-overflow: ellipsis !important;
             white-space: nowrap !important;
+        }
+
+        .discussionListItem[data-converted="true"] .listBlock.main .title .hot {
+            margin-right: 6px !important;
+            flex-shrink: 0 !important;
+            color: #ff6b35 !important;
         }
 
         .discussionListItem[data-converted="true"] .listBlock.main .secondRow {
@@ -148,8 +208,6 @@
             display: none !important;
         }
     `);
-
-
 
     function extractTimestamp(threadItem) {
         const headerBottoms = threadItem.querySelectorAll('.threadHeaderBottom');
@@ -206,11 +264,26 @@
         if (threadCounters) {
             const likeLink = threadCounters.querySelector('.LikeLink');
             if (likeLink) {
-                const iconCounter = likeLink.querySelector('.icon-counter-main-likes');
-                return iconCounter !== null;
+                const like2Icon = likeLink.querySelector('.like2Icon');
+                return like2Icon !== null;
             }
         }
         return false;
+    }
+
+    function isHotThread(threadItem) {
+        return threadItem.classList.contains('hot') || 
+               threadItem.querySelector('.hot') !== null ||
+               threadItem.classList.contains('isHot');
+    }
+
+    function reinitPreviewTooltip(threadItem) {
+        const previewLink = threadItem.querySelector('.PreviewTooltip');
+        if (previewLink && window.XenForo && window.XenForo.activate) {
+            try {
+                window.XenForo.activate(previewLink);
+            } catch(e) {}
+        }
     }
 
     function convertThreadItem(threadItem) {
@@ -243,6 +316,8 @@
                 threadUrl = altLink.getAttribute('href');
             }
         }
+
+        const previewUrl = threadUrl.replace('/unread', '');
 
         const creatorLink = threadItem.querySelector('.threadHeaderUsernameBlock .username, .thread_creator_mobile_hidden .username');
         if (!creatorLink) {
@@ -315,8 +390,9 @@
 
         const replyCount = getReplyCount(threadItem);
         const likeCount = getLikeCount(threadItem);
-        const useLikesClass = isLikesSection(threadItem);
-        const likeClassName = useLikesClass ? 'discussionListItem--likeCount' : 'discussionListItem--like2Count';
+        const hasLikesIcon = isLikesSection(threadItem);
+        const likeClassName = hasLikesIcon ? 'discussionListItem--like2Count' : 'discussionListItem--likeCount';
+        const isHot = isHotThread(threadItem);
 
         const displayTime = bumpTime || lastPostDateText || timestamp;
 
@@ -341,8 +417,9 @@
 
                 ${controlsHTML}
 
-                <a title="" href="${threadUrl}" class="listBlock main PreviewTooltip" data-previewurl="${threadUrl}/preview" aria-expanded="false">
+                <a title="" href="${threadUrl}" class="listBlock main PreviewTooltip" data-previewurl="${previewUrl}//preview" aria-expanded="false">
                     <h3 class="title">
+                        ${isHot ? '<i class="hot fa fa-solid fa-fire" title="Горячая тема"></i>' : ''}
                         <span class="spanTitle ${classes.includes('unread') ? 'unread' : ''}">${threadTitle}</span>
                     </h3>
                     <span class="secondRow">
@@ -374,6 +451,8 @@
 
         const replyForm = document.getElementById(`replySubmit-${threadId.replace('thread-', '')}`);
         if (replyForm) replyForm.remove();
+
+        setTimeout(() => reinitPreviewTooltip(threadItem), 100);
     }
 
     function processAllThreads() {
@@ -393,16 +472,17 @@
         if (isHidden) {
             hotContainer.classList.add('hidden');
         }
+        updateRoundingClasses();
 
         function addHotThreadsOption() {
             const feedForm = document.querySelector('#ExcludeForumsForm');
             if (!feedForm) return;
-            
+
             if (document.getElementById('hideHotThreadsCheckbox')) return;
 
             const titles = feedForm.querySelectorAll('.title');
             let keywordsSection = null;
-            
+
             titles.forEach(title => {
                 if (title.textContent.trim().includes('ключевым словам')) {
                     keywordsSection = title;
@@ -413,7 +493,7 @@
 
             const currentIsHidden = localStorage.getItem('hotThreadsHidden') === 'true';
             const currentBg = localStorage.getItem('customBackground') || '';
-            
+
             const hotThreadsSection = document.createElement('div');
             hotThreadsSection.style.marginTop = '16px';
             hotThreadsSection.innerHTML = `
@@ -425,14 +505,14 @@
                         <span>Скрыть раздел "Горячие темы"</span>
                     </label>
                 </div>
-                
+
                 <div style="margin-top: 20px;">
                     <div class="title">Задний фон страницы</div>
                     <div class="explainTitle">Установите свой фон для сайта.</div>
                     <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 10px;">
                         <div>
                             <label style="display: block; margin-bottom: 4px;">Ссылка на изображение:</label>
-                            <input type="text" id="bgUrlInput" placeholder="https://example.com/image.jpg" 
+                            <input type="text" id="bgUrlInput" placeholder="https://example.com/image.jpg"
                                    value="${currentBg}" style="width: 100%; padding: 6px; background: #1a1a1a; color: #d6d6d6; border: 1px solid #404040; border-radius: 4px;">
                         </div>
                         <div style="display: flex; gap: 8px;">
@@ -458,6 +538,7 @@
                 } else {
                     hotContainer.classList.remove('hidden');
                 }
+                setTimeout(updateRoundingClasses, 50);
             });
 
             const bgUrlInput = document.getElementById('bgUrlInput');
@@ -542,6 +623,10 @@
                     }
                     if (node.matches?.('.hotThreadsContainer') || node.querySelector?.('.hotThreadsContainer')) {
                         initHotThreadsToggle();
+                    }
+                    if (node.matches?.('.text_Ads-main') || node.querySelector?.('.text_Ads-main') ||
+                        node.matches?.('.latestThreads._insertLoadedContent') || node.querySelector?.('.latestThreads._insertLoadedContent')) {
+                        setTimeout(updateRoundingClasses, 50);
                     }
                 }
             });
