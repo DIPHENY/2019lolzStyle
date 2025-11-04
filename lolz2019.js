@@ -7,6 +7,7 @@
 // @author       https://lolz.live/tekumi/
 // @match        https://lolz.live/*
 // @grant        GM_addStyle
+// @grant        unsafeWindow
 // @run-at       document-start
 // @license      LZT
 // @downloadURL https://update.greasyfork.org/scripts/554560/LZT%20style%202019.user.js
@@ -15,6 +16,19 @@
 
 (function() {
     'use strict';
+
+    const win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+    
+    function activatePreviewTooltips() {
+        document.querySelectorAll('.PreviewTooltip:not([data-tooltip-init])').forEach(link => {
+            if (win.XenForo && win.XenForo.PreviewTooltip && win.jQuery) {
+                try {
+                    new win.XenForo.PreviewTooltip(win.jQuery(link));
+                    link.setAttribute('data-tooltip-init', 'true');
+                } catch(e) {}
+            }
+        });
+    }
 
     function disableControlsStyles() {
         for (let sheet of document.styleSheets) {
@@ -339,18 +353,18 @@
                threadItem.classList.contains('isHot');
     }
 
-    function reinitPreviewTooltip(threadItem) {
-        const previewLink = threadItem.querySelector('.PreviewTooltip');
-        if (previewLink && window.XenForo && window.XenForo.activate) {
-            try {
-                window.XenForo.activate(previewLink);
-            } catch(e) {}
-        }
-    }
-
     function convertThreadItem(threadItem) {
         if (threadItem.hasAttribute('data-converted')) return;
 
+        const threadMain = threadItem.querySelector('.threadMessage, .threadMain');
+        if (!threadMain) {
+            setTimeout(() => {
+                if (!threadItem.querySelector('.threadMessage, .threadMain')) {
+                    threadItem.remove();
+                }
+            }, 500);
+            return;
+        }
         const threadId = threadItem.id;
         const dataAuthor = threadItem.getAttribute('data-author');
         const classes = threadItem.className;
@@ -379,7 +393,10 @@
             }
         }
 
-        const previewUrl = threadUrl.replace('/unread', '');
+        let previewUrl = threadUrl.replace('/unread', '');
+        if (previewUrl.endsWith('/')) {
+            previewUrl = previewUrl.slice(0, -1);
+        }
 
         const creatorLink = threadItem.querySelector('.threadHeaderUsernameBlock .username, .thread_creator_mobile_hidden .username');
         if (!creatorLink) {
@@ -494,7 +511,7 @@
 
                 ${controlsHTML}
 
-                <a title="" href="${threadUrl}" class="listBlock main PreviewTooltip" data-previewurl="${previewUrl}//preview" aria-expanded="false">
+                <a title="" href="${threadUrl}" class="listBlock main PreviewTooltip" data-previewurl="${previewUrl}/preview" aria-expanded="false">
                     <h3 class="title">
                         ${isHot ? '<i class="hot fa fa-solid fa-fire" title="Горячая тема"></i>' : ''}
                         <span class="spanTitle ${classes.includes('unread') ? 'unread' : ''}">${threadTitle}</span>
@@ -528,7 +545,7 @@
         const replyForm = document.getElementById(`replySubmit-${threadId.replace('thread-', '')}`);
         if (replyForm) replyForm.remove();
 
-        setTimeout(() => reinitPreviewTooltip(threadItem), 100);
+        setTimeout(() => activatePreviewTooltips(), 100);
     }
 
     function processAllThreads() {
