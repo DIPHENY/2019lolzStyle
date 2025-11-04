@@ -169,6 +169,18 @@
 
         .discussionListItem[data-converted="true"] .listBlock.main .secondRow {
             margin-left: 15px !important;
+            display: flex !important;
+            align-items: center !important;
+            flex-wrap: nowrap !important;
+            gap: 4px !important;
+        }
+
+        .discussionListItem[data-converted="true"] .listBlock.main .secondRow .info-separator {
+            margin: 0 2px !important;
+        }
+
+        .discussionListItem[data-converted="true"] .listBlock.main .secondRow .zindex-block-main-forum-title {
+            white-space: nowrap !important;
         }
 
         .discussionListItem[data-converted="true"] {
@@ -206,6 +218,25 @@
 
         .hotThreadsContainer.hidden {
             display: none !important;
+        }
+
+        #feedUpdateNotification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #2a2a2a;
+            color: #d6d6d6;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        #feedUpdateNotification.show {
+            opacity: 1;
         }
     `);
 
@@ -272,7 +303,7 @@
     }
 
     function isHotThread(threadItem) {
-        return threadItem.classList.contains('hot') || 
+        return threadItem.classList.contains('hot') ||
                threadItem.querySelector('.hot') !== null ||
                threadItem.classList.contains('isHot');
     }
@@ -332,6 +363,8 @@
         const timestamp = extractTimestamp(threadItem);
 
         let bumpTime = '';
+        let forumName = '';
+        let forumUrl = '';
         const headerBottom = threadItem.querySelector('.threadHeaderBottom');
         if (headerBottom) {
             const mutedElements = headerBottom.querySelectorAll('.muted');
@@ -341,6 +374,12 @@
                     bumpTime = text.replace('поднята', '').replace('обновлена', '').trim();
                     break;
                 }
+            }
+
+            const forumLink = headerBottom.querySelector('a[href*="forums/"]');
+            if (forumLink) {
+                forumName = forumLink.textContent.trim();
+                forumUrl = forumLink.getAttribute('href');
             }
         }
 
@@ -431,16 +470,16 @@
                         <span class="startDate muted" title="">${timestamp}</span>
                         <span class="discussionListItem--replyCount icon muted">${replyCount}</span>
                         <span class="${likeClassName} icon muted pclikeCount">${likeCount}</span>
-
-                        <span class="mobile--LastReply">
-                            <span class="discussionListItem--replyCount mobile icon muted">${replyCount}</span>
-                            <span style="margin: 0px 8px 0px 0px" class="${likeClassName} icon muted mblikeCount">${likeCount}</span>
-                            <span class="svgIcon mobile--LastReplyIcon"></span>
-                            <span class="username">
-                                ${lastPostUser ? lastPostUser.innerHTML : creatorUsernameHTML}
-                            </span>
-                            <span class="muted">${displayTime}</span>
+                        ${forumName ? `<span class="muted zindex-block-main-forum-title">· ${forumName}` : ''}
+                    </span>
+                    <span class="mobile--LastReply">
+                        <span class="discussionListItem--replyCount mobile icon muted">${replyCount}</span>
+                        <span style="margin: 0px 8px 0px 0px" class="${likeClassName} icon muted mblikeCount">${likeCount}</span>
+                        <span class="svgIcon mobile--LastReplyIcon"></span>
+                        <span class="username">
+                            ${lastPostUser ? lastPostUser.innerHTML : creatorUsernameHTML}
                         </span>
+                        <span class="muted">${displayTime}</span>
                     </span>
                 </a>
             </div>
@@ -493,6 +532,8 @@
 
             const currentIsHidden = localStorage.getItem('hotThreadsHidden') === 'true';
             const currentBg = localStorage.getItem('customBackground') || '';
+            const autoUpdateEnabled = localStorage.getItem('autoUpdateEnabled') !== 'false';
+            const autoUpdateInterval = localStorage.getItem('autoUpdateInterval') || '2';
 
             const hotThreadsSection = document.createElement('div');
             hotThreadsSection.style.marginTop = '16px';
@@ -504,6 +545,23 @@
                         <input type="checkbox" id="hideHotThreadsCheckbox" ${currentIsHidden ? 'checked' : ''}>
                         <span>Скрыть раздел "Горячие темы"</span>
                     </label>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <div class="title">Автообновление ленты</div>
+                    <div class="explainTitle">Лента будет автоматически обновляться через указанный интервал времени.</div>
+                    <div style="margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 10px;">
+                            <input type="checkbox" id="autoUpdateCheckbox" ${autoUpdateEnabled ? 'checked' : ''}>
+                            <span>Включить автообновление</span>
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label style="display: block;">Интервал (минуты):</label>
+                            <input type="number" id="autoUpdateIntervalInput" min="1" max="30" value="${autoUpdateInterval}"
+                                   style="width: 80px; padding: 6px; background: #1a1a1a; color: #d6d6d6; border: 1px solid #404040; border-radius: 4px;">
+                            <span style="color: #888;">от 1 до 30 минут</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div style="margin-top: 20px;">
@@ -539,6 +597,25 @@
                     hotContainer.classList.remove('hidden');
                 }
                 setTimeout(updateRoundingClasses, 50);
+            });
+
+            const autoUpdateCheckbox = document.getElementById('autoUpdateCheckbox');
+            const autoUpdateIntervalInput = document.getElementById('autoUpdateIntervalInput');
+
+            autoUpdateCheckbox.addEventListener('change', () => {
+                localStorage.setItem('autoUpdateEnabled', autoUpdateCheckbox.checked);
+                window.location.reload();
+            });
+
+            autoUpdateIntervalInput.addEventListener('change', () => {
+                let value = parseInt(autoUpdateIntervalInput.value);
+                if (value < 1) value = 1;
+                if (value > 30) value = 30;
+                autoUpdateIntervalInput.value = value;
+                localStorage.setItem('autoUpdateInterval', value);
+                if (localStorage.getItem('autoUpdateEnabled') !== 'false') {
+                    window.location.reload();
+                }
             });
 
             const bgUrlInput = document.getElementById('bgUrlInput');
@@ -597,15 +674,59 @@
         });
     }
 
+    function showNotification(message) {
+        let notification = document.getElementById('feedUpdateNotification');
+        if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'feedUpdateNotification';
+            document.body.appendChild(notification);
+        }
+        
+        notification.textContent = message;
+        notification.classList.add('show');
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+        }, 3000);
+    }
+
+    function autoUpdateFeed() {
+        const updateButton = document.querySelector('.UpdateFeedButton');
+        if (updateButton) {
+            updateButton.classList.remove('hidden');
+            setTimeout(() => {
+                updateButton.click();
+                showNotification('Лента обновлена');
+                setTimeout(() => {
+                    updateButton.classList.add('hidden');
+                }, 500);
+            }, 100);
+        }
+    }
+
+    function initAutoUpdate() {
+        const isEnabled = localStorage.getItem('autoUpdateEnabled') !== 'false';
+        if (!isEnabled) return;
+
+        const intervalMinutes = parseInt(localStorage.getItem('autoUpdateInterval') || '2');
+        const intervalMs = intervalMinutes * 60 * 1000;
+
+        setInterval(() => {
+            autoUpdateFeed();
+        }, intervalMs);
+    }
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             processAllThreads();
             initHotThreadsToggle();
+            initAutoUpdate();
             setTimeout(() => window.scrollBy(0, 1), 100);
         });
     } else {
         processAllThreads();
         initHotThreadsToggle();
+        initAutoUpdate();
         setTimeout(() => window.scrollBy(0, 1), 100);
     }
 
