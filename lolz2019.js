@@ -151,6 +151,7 @@
             white-space: nowrap !important;
             display: flex !important;
             gap: 2px !important;
+            position: relative !important;
         }
 
         .discussionListItem[data-converted="true"] .listBlock.main .title .spanTitle {
@@ -169,7 +170,6 @@
 
         .discussionListItem[data-converted="true"] .listBlock.main .secondRow {
             margin-left: 15px !important;
-            display: flex !important;
             align-items: center !important;
             flex-wrap: nowrap !important;
             gap: 4px !important;
@@ -220,6 +220,30 @@
             display: none !important;
         }
 
+        .discussionListItem[data-converted="true"] .forum-name-prefix-wrapper {
+            position: absolute !important;
+            right: 205px !important;
+            top: 8px !important;
+            opacity: 0 !important;
+            transition: .15s !important;
+            z-index: 100 !important;
+        }
+
+        .discussionListItem[data-converted="true"]:hover .forum-name-prefix-wrapper {
+            opacity: 1 !important;
+        }
+
+        .discussionListItem[data-converted="true"] .forum-name-prefix {
+            background: #505050 !important;
+            font-size: 11.5px !important;
+            font-weight: 600 !important;
+            padding: 2px 7px !important;
+            line-height: 18px !important;
+            border-radius: 6px;
+            display: inline-block !important;
+            white-space: nowrap !important;
+        }
+
         #feedUpdateNotification {
             position: fixed;
             top: 20px;
@@ -237,6 +261,13 @@
 
         #feedUpdateNotification.show {
             opacity: 1;
+        }
+
+        @media (max-width: 610px) {
+            .Responsive .discussionListMainPage .discussionListItem .controls {
+                margin: unset;
+                display: none;
+            }
         }
     `);
 
@@ -331,7 +362,7 @@
         }
 
         const prefixesElement = titleLink.querySelector('.threadPrefixes');
-        const prefixesHTML = prefixesElement ? prefixesElement.outerHTML : '';
+        let prefixesHTML = prefixesElement ? prefixesElement.outerHTML : '';
 
         let threadTitle = titleLink.textContent.trim();
         if (prefixesElement) {
@@ -381,6 +412,11 @@
                 forumName = forumLink.textContent.trim();
                 forumUrl = forumLink.getAttribute('href');
             }
+        }
+
+        let forumPrefixHTML = '';
+        if (forumName) {
+            forumPrefixHTML = `<div class="forum-name-prefix-wrapper"><span class="forum-name-prefix">${forumName}</span></div>`;
         }
 
         const lastPostBlock = threadItem.querySelector('.listBlock.lastPost');
@@ -454,6 +490,8 @@
             <div class="discussionListItem--Wrapper">
                 ${lastPostHTML}
 
+                ${forumPrefixHTML}
+
                 ${controlsHTML}
 
                 <a title="" href="${threadUrl}" class="listBlock main PreviewTooltip" data-previewurl="${previewUrl}//preview" aria-expanded="false">
@@ -470,16 +508,15 @@
                         <span class="startDate muted" title="">${timestamp}</span>
                         <span class="discussionListItem--replyCount icon muted">${replyCount}</span>
                         <span class="${likeClassName} icon muted pclikeCount">${likeCount}</span>
-                        ${forumName ? `<span class="muted zindex-block-main-forum-title">· ${forumName}` : ''}
-                    </span>
-                    <span class="mobile--LastReply">
-                        <span class="discussionListItem--replyCount mobile icon muted">${replyCount}</span>
-                        <span style="margin: 0px 8px 0px 0px" class="${likeClassName} icon muted mblikeCount">${likeCount}</span>
-                        <span class="svgIcon mobile--LastReplyIcon"></span>
-                        <span class="username">
-                            ${lastPostUser ? lastPostUser.innerHTML : creatorUsernameHTML}
+                        <span class="mobile--LastReply">
+                            <span class="discussionListItem--replyCount mobile icon muted">${replyCount}</span>
+                            <span style="margin: 0px 8px 0px 0px" class="${likeClassName} icon muted mblikeCount">${likeCount}</span>
+                            <span class="svgIcon mobile--LastReplyIcon"></span>
+                            <span class="username">
+                                ${lastPostUser ? lastPostUser.innerHTML : creatorUsernameHTML}
+                            </span>
+                            <span class="muted">${displayTime}</span>
                         </span>
-                        <span class="muted">${displayTime}</span>
                     </span>
                 </a>
             </div>
@@ -681,10 +718,10 @@
             notification.id = 'feedUpdateNotification';
             document.body.appendChild(notification);
         }
-        
+
         notification.textContent = message;
         notification.classList.add('show');
-        
+
         setTimeout(() => {
             notification.classList.remove('show');
         }, 3000);
