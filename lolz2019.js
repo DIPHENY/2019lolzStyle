@@ -2,7 +2,7 @@
 // @name         LZT style 2019
 // @description  LZT back style 2019
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.3.2
 // @icon         https://lolz.live/styles/brand/download/avatars/three_avatar.svg
 // @author       https://lolz.live/tekumi/
 // @match        https://lolz.live/*
@@ -18,7 +18,7 @@
     'use strict';
 
     const win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
-    
+
     function activatePreviewTooltips() {
         document.querySelectorAll('.PreviewTooltip:not([data-tooltip-init])').forEach(link => {
             if (win.XenForo && win.XenForo.PreviewTooltip && win.jQuery) {
@@ -47,14 +47,32 @@
     }
 
     function applyBackground() {
-        const bgUrl = localStorage.getItem('customBackground');
-        let bgElement = document.getElementById('customBgLayer');
+    const bgUrl = localStorage.getItem('customBackground');
+    let bgElement = document.getElementById('customBgLayer');
 
         if (bgUrl) {
             if (!bgElement) {
                 bgElement = document.createElement('div');
                 bgElement.id = 'customBgLayer';
-                document.body.prepend(bgElement);
+                const insertBg = () => {
+                    try {
+                        if (document.body && !document.getElementById('customBgLayer')) {
+                            document.body.prepend(bgElement);
+                        }
+                    } catch(e) {}
+                };
+
+                if (document.body) {
+                    insertBg();
+                } else {
+                    const obs = new MutationObserver((mutations, observer) => {
+                        if (document.body) {
+                            insertBg();
+                            observer.disconnect();
+                        }
+                    });
+                    obs.observe(document.documentElement, { childList: true, subtree: true });
+                }
             }
             bgElement.style.cssText = `
                 position: fixed;
@@ -65,13 +83,15 @@
                 height: 100vh;
                 background: linear-gradient(rgb(54 54 54 / .85), rgb(54 54 54 / .85)), url(${bgUrl});
                 background-size: cover;
-                background-position: center;
+               background-position: center;
                 background-repeat: no-repeat;
             `;
         } else if (bgElement) {
             bgElement.remove();
         }
     }
+    try { applyBackground(); } catch(e) {}
+
 
     function updateRoundingClasses() {
         const hotContainer = document.querySelector('.hotThreadsContainer');
@@ -181,6 +201,7 @@
             flex-shrink: 0 !important;
             color: #ff6b35 !important;
         }
+
 
         .discussionListItem[data-converted="true"] .listBlock.main .secondRow {
             margin-left: 15px !important;
@@ -353,6 +374,11 @@
                threadItem.classList.contains('isHot');
     }
 
+    function isLockedThread(threadItem) {
+        return threadItem.classList.contains('locked') ||
+               threadItem.querySelector('.iconKey.fa-lock') !== null;
+    }
+
     function convertThreadItem(threadItem) {
         if (threadItem.hasAttribute('data-converted')) return;
 
@@ -485,6 +511,7 @@
         const hasLikesIcon = isLikesSection(threadItem);
         const likeClassName = hasLikesIcon ? 'discussionListItem--like2Count' : 'discussionListItem--likeCount';
         const isHot = isHotThread(threadItem);
+        const isLocked = isLockedThread(threadItem);
 
         const displayTime = bumpTime || lastPostDateText || timestamp;
 
@@ -513,6 +540,7 @@
 
                 <a title="" href="${threadUrl}" class="listBlock main PreviewTooltip" data-previewurl="${previewUrl}/preview" aria-expanded="false">
                     <h3 class="title">
+                        ${isLocked ? '<i class="iconKey fa fa-lock Tooltip" title="Тема закрыта. Новые сообщения не принимаются"></i>' : ''}
                         ${isHot ? '<i class="hot fa fa-solid fa-fire" title="Горячая тема"></i>' : ''}
                         <span class="spanTitle ${classes.includes('unread') ? 'unread' : ''}">${threadTitle}</span>
                     </h3>
